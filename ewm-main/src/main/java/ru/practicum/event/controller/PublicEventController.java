@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.event.dto.EventDtoGetPublic;
 import ru.practicum.event.dto.EventDtoResponse;
 import ru.practicum.event.dto.EventDtoResponseShort;
 import ru.practicum.event.service.EventService;
@@ -38,7 +39,8 @@ public class PublicEventController {
                                                        @RequestParam(defaultValue = "10") @Positive int size,
                                                        HttpServletRequest request) {
         log.info("public:events - get filtered events.Path: {}", request.getRequestURI());
-        return eventService.getEventsPublic(text, categories, paid, rangeStart, rangeEnd, available, sort, from, size,
+        return eventService.getEventsPublic(EventDtoGetPublic.builder().text(text).categories(categories).paid(paid)
+                        .rangeStart(rangeStart).rangeEnd(rangeEnd).available(available).sort(sort).build(), from, size,
                 request);
     }
 

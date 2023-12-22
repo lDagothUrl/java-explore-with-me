@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.enums.EventState;
+import ru.practicum.event.dto.EventDtoGetAdmin;
 import ru.practicum.event.dto.EventDtoResponse;
 import ru.practicum.event.dto.EventDtoUpdateRequest;
 import ru.practicum.event.service.EventService;
@@ -34,7 +35,8 @@ public class AdminEventController {
                                                    @RequestParam(defaultValue = "0") @PositiveOrZero int from,
                                                    @RequestParam(defaultValue = "10") @Positive int size) {
         log.info("admin:events - get events list action");
-        return eventService.getEventsByAdmin(users, states, categories, rangeStart, rangeEnd, from, size);
+        return eventService.getEventsByAdmin(EventDtoGetAdmin.builder().users(users).states(states)
+                .categories(categories).rangeStart(rangeStart).rangeEnd(rangeEnd).build(), from, size);
     }
 
     @PatchMapping("/{eventId}")

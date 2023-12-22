@@ -1,3 +1,3 @@
 FROM amazoncorretto:11-alpine-jdk
-COPY target/*.jar app.jar
+COPY ${JAR_FILE} /app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]

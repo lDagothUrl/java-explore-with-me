@@ -11,35 +11,37 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.category.model.Category;
-import ru.practicum.category.mapper.CategoryMapper;
-import ru.practicum.category.repository.MemoryCategory;
 import ru.practicum.category.dto.CategoryDtoResponse;
+import ru.practicum.category.mapper.CategoryMapper;
+import ru.practicum.category.model.Category;
+import ru.practicum.category.repository.MemoryCategory;
 import ru.practicum.enums.*;
-import ru.practicum.event.model.*;
 import ru.practicum.event.dto.*;
 import ru.practicum.event.mapper.EventMapper;
+import ru.practicum.event.model.Event;
+import ru.practicum.event.model.QEvent;
 import ru.practicum.event.repository.MemoryEvent;
 import ru.practicum.exception.exceptions.AccessDeniedException;
 import ru.practicum.exception.exceptions.DateException;
 import ru.practicum.exception.exceptions.NotFoundException;
 import ru.practicum.exception.exceptions.ValidationException;
-import ru.practicum.location.model.Location;
-import ru.practicum.location.mapper.LocationMapper;
-import ru.practicum.location.repository.MemoryLocation;
 import ru.practicum.location.dto.LocationDto;
-import ru.practicum.request.repository.MemoryRequest;
-import ru.practicum.request.mapper.RequestMapper;
+import ru.practicum.location.mapper.LocationMapper;
+import ru.practicum.location.model.Location;
+import ru.practicum.location.repository.MemoryLocation;
 import ru.practicum.request.dto.RequestDtoResponse;
 import ru.practicum.request.dto.RequestStatusUpdateRequest;
 import ru.practicum.request.dto.RequestStatusUpdateResponse;
+import ru.practicum.request.mapper.RequestMapper;
+import ru.practicum.request.model.QRequest;
 import ru.practicum.request.model.Request;
+import ru.practicum.request.repository.MemoryRequest;
 import ru.practicum.request.service.RequestService;
 import ru.practicum.stat.service.RemoteStatService;
-import ru.practicum.user.repository.MemoryUser;
-import ru.practicum.user.model.User;
-import ru.practicum.user.mapper.UserMapper;
 import ru.practicum.user.dto.UserDtoResponseShort;
+import ru.practicum.user.mapper.UserMapper;
+import ru.practicum.user.model.User;
+import ru.practicum.user.repository.MemoryUser;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -62,16 +64,16 @@ public class EventServiceImpl implements EventService {
     private final MemoryRequest memoryRequest;
 
     @Override
-    public List<EventDtoResponse> getEventsByAdmin(List<Long> users, List<EventState> states, List<Long> categories,
-                                                   String rangeStart, String rangeEnd, int from, int size) {
+    public List<EventDtoResponse> getEventsByAdmin(EventDtoGetAdmin eventDtoGetAdmin, int from, int size) {
 
-        LocalDateTime start = rangeStart == null ? null : LocalDateTime.parse(rangeStart, FORMAT);
-        LocalDateTime end = rangeEnd == null ? null : LocalDateTime.parse(rangeEnd, FORMAT);
+        LocalDateTime start = eventDtoGetAdmin.getRangeStart() == null ? null : LocalDateTime.parse(eventDtoGetAdmin.getRangeStart(), FORMAT);
+        LocalDateTime end = eventDtoGetAdmin.getRangeEnd() == null ? null : LocalDateTime.parse(eventDtoGetAdmin.getRangeEnd(), FORMAT);
         if (start != null && end != null && start.isAfter(end)) {
             throw new ValidationException("Start must be before end");
         }
 
-        BooleanExpression filter = buildConditionsForEventsByAdmin(users, states, categories, start, end);
+        BooleanExpression filter = buildConditionsForEventsByAdmin(eventDtoGetAdmin.getUsers(),
+                eventDtoGetAdmin.getStates(), eventDtoGetAdmin.getCategories(), start, end);
         Pageable pageable = PageRequest.of(from / size, size);
         Page<Event> events = memoryEvent.findAll(filter, pageable);
 
@@ -291,10 +293,10 @@ public class EventServiceImpl implements EventService {
         }
 
         RequestStatusUpdateResponse result = new RequestStatusUpdateResponse();
-        for (Long reqId : request.getRequestIds()) {
-            Request nextRequest = memoryRequest.findById(reqId)
-                    .orElseThrow(() -> new NotFoundException("Request id=" + reqId + " not found"));
-
+        List<Long> reqIds = request.getRequestIds();
+        List<Request> requests = (List<Request>) QRequest.request.id.in(reqIds);
+        for (Request nextRequest : requests) {
+            Long reqId = nextRequest.getId();
             if (!nextRequest.getStatus().equals(RequestStatus.PENDING)) {
                 throw new AccessDeniedException("Request id=" + reqId + " not in PENDING status");
             }
@@ -312,31 +314,27 @@ public class EventServiceImpl implements EventService {
                 nextRequest.setStatus(RequestStatus.REJECTED);
                 result.getRejectedRequests().add(RequestMapper.toRequestDtoResponse(nextRequest));
             }
-            memoryRequest.save(nextRequest);
         }
+        memoryRequest.saveAll(requests);
         return result;
     }
 
     @Override
-    public List<EventDtoResponseShort> getEventsPublic(String text,
-                                                       List<Long> categories,
-                                                       Boolean paid,
-                                                       String rangeStart,
-                                                       String rangeEnd,
-                                                       Boolean available,
-                                                       String sort,
+    public List<EventDtoResponseShort> getEventsPublic(EventDtoGetPublic eventDtoGetPublic,
                                                        int from,
                                                        int size,
                                                        HttpServletRequest request) {
-        LocalDateTime start = rangeStart == null ? null : LocalDateTime.parse(rangeStart, FORMAT);
-        LocalDateTime end = rangeEnd == null ? null : LocalDateTime.parse(rangeEnd, FORMAT);
+        LocalDateTime start = eventDtoGetPublic.getRangeStart() == null ? null : LocalDateTime.parse(eventDtoGetPublic.getRangeStart(), FORMAT);
+        LocalDateTime end = eventDtoGetPublic.getRangeEnd() == null ? null : LocalDateTime.parse(eventDtoGetPublic.getRangeEnd(), FORMAT);
         if (start != null && end != null && start.isAfter(end)) {
             throw new ValidationException("Start must be before end");
         }
 
-        BooleanExpression filter = buildConditionsForEventsPublic(text, categories, paid, start, end, available);
+        BooleanExpression filter = buildConditionsForEventsPublic(eventDtoGetPublic.getText(),
+                eventDtoGetPublic.getCategories(), eventDtoGetPublic.getPaid(),
+                start, end, eventDtoGetPublic.getAvailable());
         Sort doSort;
-        if (StringUtils.isNotBlank(sort) && sort.equals(EventSort.EVENT_DATE.toString())) {
+        if (StringUtils.isNotBlank(eventDtoGetPublic.getSort()) && eventDtoGetPublic.getSort().equals(EventSort.EVENT_DATE.toString())) {
             doSort = Sort.by(EventSort.EVENT_DATE.getTitle());
         } else {
             doSort = Sort.by(EventSort.ID.getTitle());
@@ -344,7 +342,7 @@ public class EventServiceImpl implements EventService {
         Pageable pageable = PageRequest.of(from / size, size, doSort);
         Page<Event> events = memoryEvent.findAll(filter, pageable);
         List<EventDtoResponseShort> result = buildEventDtoResponseShort(events.toList());
-        if (StringUtils.isNotBlank(sort) && sort.equals(EventSort.VIEWS.toString())) {
+        if (StringUtils.isNotBlank(eventDtoGetPublic.getSort()) && eventDtoGetPublic.getSort().equals(EventSort.VIEWS.toString())) {
             Comparator<EventDtoResponseShort> comparator = new EventDtoViewsComparator();
             result.sort(comparator);
         }

@@ -1,6 +1,5 @@
 package ru.practicum.event.service;
 
-import ru.practicum.enums.EventState;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.dto.*;
 import ru.practicum.request.dto.RequestDtoResponse;
@@ -12,8 +11,7 @@ import java.util.List;
 
 public interface EventService {
 
-    List<EventDtoResponse> getEventsByAdmin(List<Long> users, List<EventState> states, List<Long> categories,
-                                            String rangeStart, String rangeEnd, int from, int size);
+    List<EventDtoResponse> getEventsByAdmin(EventDtoGetAdmin eventDtoGetAdmin, int from, int size);
 
     EventDtoResponse updateEventByAdmin(Long eventId, EventDtoUpdateRequest request);
 
@@ -30,9 +28,7 @@ public interface EventService {
     RequestStatusUpdateResponse updateEventRequestsByUser(Long userId, Long eventId,
                                                           RequestStatusUpdateRequest request);
 
-    List<EventDtoResponseShort> getEventsPublic(String text, List<Long> categories, Boolean paid,
-                                                String rangeStart, String rangeEnd, Boolean available,
-                                                String sort, int from, int size, HttpServletRequest request);
+    List<EventDtoResponseShort> getEventsPublic(EventDtoGetPublic eventDtoGetPublic, int from, int size, HttpServletRequest request);
 
     EventDtoResponse getEventPublic(Long id, HttpServletRequest request);
 
