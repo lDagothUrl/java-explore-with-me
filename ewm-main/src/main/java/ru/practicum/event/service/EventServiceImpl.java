@@ -291,9 +291,12 @@ public class EventServiceImpl implements EventService {
         }
 
         RequestStatusUpdateResponse result = new RequestStatusUpdateResponse();
-        for (Long reqId : request.getRequestIds()) {
-            Request nextRequest = memoryRequest.findById(reqId)
-                    .orElseThrow(() -> new NotFoundException("Request id=" + reqId + " not found"));
+        List<Request> requests = memoryRequest.findAllById(request.getRequestIds());
+        if (requests == null){
+            throw new NotFoundException("Request id=" + request.getRequestIds() + " not found");
+        }
+        for (Request nextRequest : requests) {
+            Long reqId = nextRequest.getId();
 
             if (!nextRequest.getStatus().equals(RequestStatus.PENDING)) {
                 throw new AccessDeniedException("Request id=" + reqId + " not in PENDING status");
@@ -312,8 +315,8 @@ public class EventServiceImpl implements EventService {
                 nextRequest.setStatus(RequestStatus.REJECTED);
                 result.getRejectedRequests().add(RequestMapper.toRequestDtoResponse(nextRequest));
             }
-            memoryRequest.save(nextRequest);
         }
+        memoryRequest.saveAll(requests);
         return result;
     }
 
