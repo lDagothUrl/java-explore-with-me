@@ -11,35 +11,36 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.category.model.Category;
-import ru.practicum.category.mapper.CategoryMapper;
-import ru.practicum.category.repository.MemoryCategory;
 import ru.practicum.category.dto.CategoryDtoResponse;
+import ru.practicum.category.mapper.CategoryMapper;
+import ru.practicum.category.model.Category;
+import ru.practicum.category.repository.MemoryCategory;
 import ru.practicum.enums.*;
-import ru.practicum.event.model.*;
 import ru.practicum.event.dto.*;
 import ru.practicum.event.mapper.EventMapper;
+import ru.practicum.event.model.Event;
+import ru.practicum.event.model.QEvent;
 import ru.practicum.event.repository.MemoryEvent;
 import ru.practicum.exception.exceptions.AccessDeniedException;
 import ru.practicum.exception.exceptions.DateException;
 import ru.practicum.exception.exceptions.NotFoundException;
 import ru.practicum.exception.exceptions.ValidationException;
-import ru.practicum.location.model.Location;
-import ru.practicum.location.mapper.LocationMapper;
-import ru.practicum.location.repository.MemoryLocation;
 import ru.practicum.location.dto.LocationDto;
-import ru.practicum.request.repository.MemoryRequest;
-import ru.practicum.request.mapper.RequestMapper;
+import ru.practicum.location.mapper.LocationMapper;
+import ru.practicum.location.model.Location;
+import ru.practicum.location.repository.MemoryLocation;
 import ru.practicum.request.dto.RequestDtoResponse;
 import ru.practicum.request.dto.RequestStatusUpdateRequest;
 import ru.practicum.request.dto.RequestStatusUpdateResponse;
+import ru.practicum.request.mapper.RequestMapper;
 import ru.practicum.request.model.Request;
+import ru.practicum.request.repository.MemoryRequest;
 import ru.practicum.request.service.RequestService;
 import ru.practicum.stat.service.RemoteStatService;
-import ru.practicum.user.repository.MemoryUser;
-import ru.practicum.user.model.User;
-import ru.practicum.user.mapper.UserMapper;
 import ru.practicum.user.dto.UserDtoResponseShort;
+import ru.practicum.user.mapper.UserMapper;
+import ru.practicum.user.model.User;
+import ru.practicum.user.repository.MemoryUser;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -292,9 +293,7 @@ public class EventServiceImpl implements EventService {
 
         RequestStatusUpdateResponse result = new RequestStatusUpdateResponse();
         List<Request> requests = memoryRequest.findAllById(request.getRequestIds());
-        if (requests == null){
-            throw new NotFoundException("Request id=" + request.getRequestIds() + " not found");
-        }
+        if (requests == null) throw new NotFoundException("Request id=" + request.getRequestIds() + " not found");
         for (Request nextRequest : requests) {
             Long reqId = nextRequest.getId();
 

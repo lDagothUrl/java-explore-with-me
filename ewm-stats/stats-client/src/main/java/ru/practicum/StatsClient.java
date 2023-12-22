@@ -29,13 +29,10 @@ public class StatsClient extends BaseClient {
 
     public ResponseEntity<Object> createHit(HttpServletRequest req, String app) {
         log.info("{} -> POST Hit request", req.getContextPath());
-
-        String realIp = req.getRemoteAddr().equals("0:0:0:0:0:0:0:1") ? "127.0.0.1" : req.getRemoteAddr();
-
         return post("/hit", new StatsDtoRequest(
                 app,
                 req.getRequestURI(),
-                realIp,
+                req.getRemoteAddr(),
                 LocalDateTime.now())
         );
     }
